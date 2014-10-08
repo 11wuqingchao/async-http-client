@@ -234,7 +234,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <finalName>microbenchmarks</finalName>
+                            <finalName>ntlm</finalName>
                             <transformers>
                                 <transformer
                                     implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
@@ -245,8 +245,6 @@
                     </execution>
                 </executions>
             </plugin>
-            
-            
             
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
