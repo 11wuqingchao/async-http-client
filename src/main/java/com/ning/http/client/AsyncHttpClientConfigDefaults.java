@@ -97,8 +97,8 @@ public final class AsyncHttpClientConfigDefaults {
         return Integer.getInteger(ASYNC_CLIENT + "maxRequestRetry", 5);
     }
 
-    public static boolean defaultAllowPoolingSslConnections() {
-        return getBoolean(ASYNC_CLIENT + "allowPoolingSslConnections", true);
+    public static ConnectionPoolOffering defaultConnectionPoolOffering() {
+        return ConnectionPoolOffering.AlwaysOffer.INSTANCE;
     }
 
     public static boolean defaultDisableUrlEncodingForBoundRequests() {

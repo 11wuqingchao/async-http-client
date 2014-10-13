@@ -147,9 +147,6 @@ public abstract class Protocol {
                     if ((statusCode == FOUND.getCode() && !config.isStrict302Handling()) || statusCode == SEE_OTHER.getCode())
                         requestBuilder.setMethod("GET");
 
-                    // in case of a redirect from HTTP to HTTPS, future attributes might change
-                    final boolean initialConnectionKeepAlive = future.isKeepAlive();
-                    final String initialPoolKey = channelManager.getPartitionId(future);
 
                     future.setUri(uri);
                     String newUrl = uri.toUrl();
@@ -167,7 +164,8 @@ public abstract class Protocol {
 
                     requestBuilder.setHeaders(propagatedHeaders(future.getRequest()));
 
-                    Callback callback = channelManager.newDrainCallback(future, channel, initialConnectionKeepAlive, initialPoolKey);
+                    // beware: in case of a redirect from HTTP to HTTPS, future attributes might change
+                    Callback callback = channelManager.newDrainCallback(future, channel, future.isKeepAlive(), channelManager.getPartitionId(future), future.getHttpStatus());
 
                     if (HttpHeaders.isTransferEncodingChunked(response)) {
                         // We must make sure there is no bytes left before

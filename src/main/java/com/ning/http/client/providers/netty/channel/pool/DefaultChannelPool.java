@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ning.http.client.AsyncHttpClientConfig;
+import com.ning.http.client.ConnectionPoolOffering;
 import com.ning.http.client.providers.netty.channel.Channels;
 import com.ning.http.client.providers.netty.future.NettyResponseFuture;
 
@@ -47,7 +48,7 @@ public final class DefaultChannelPool implements ChannelPool {
     private final ConcurrentHashMap<Integer, ChannelCreation> channelId2Creation = new ConcurrentHashMap<Integer, ChannelCreation>();
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private final Timer nettyTimer;
-    private final boolean sslConnectionPoolEnabled;
+    private final ConnectionPoolOffering connectionPoolOffering;
     private final int maxConnectionTTL;
     private final boolean maxConnectionTTLDisabled;
     private final long maxIdleTime;
@@ -57,16 +58,16 @@ public final class DefaultChannelPool implements ChannelPool {
     public DefaultChannelPool(AsyncHttpClientConfig config, Timer hashedWheelTimer) {
         this(config.getPooledConnectionIdleTimeout(),//
                 config.getConnectionTTL(),//
-                config.isAllowPoolingSslConnections(),//
+                config.getConnectionPoolOffering(),//
                 hashedWheelTimer);
     }
 
     public DefaultChannelPool(//
             long maxIdleTime,//
             int maxConnectionTTL,//
-            boolean sslConnectionPoolEnabled,//
+            ConnectionPoolOffering connectionPoolOffering,//
             Timer nettyTimer) {
-        this.sslConnectionPoolEnabled = sslConnectionPoolEnabled;
+        this.connectionPoolOffering = connectionPoolOffering;
         this.maxIdleTime = maxIdleTime;
         this.maxConnectionTTL = maxConnectionTTL;
         maxConnectionTTLDisabled = maxConnectionTTL <= 0;
@@ -237,8 +238,8 @@ public final class DefaultChannelPool implements ChannelPool {
         return partition;
     }
     
-    public boolean offer(Channel channel, String partition) {
-        if (isClosed.get() || (!sslConnectionPoolEnabled && channel.getPipeline().get(SslHandler.class) != null))
+    public boolean offer(Channel channel, String partition, Integer statusCode) {
+        if (isClosed.get() || !connectionPoolOffering.canOffer(channel.getPipeline().get(SslHandler.class) != null, null))
             return false;
 
         long now = millisTime();

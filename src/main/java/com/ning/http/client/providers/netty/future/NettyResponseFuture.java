@@ -17,6 +17,8 @@ import static com.ning.http.util.DateUtils.millisTime;
 
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
+import org.jboss.netty.handler.codec.http.HttpResponse;
+import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,6 +85,7 @@ public final class NettyResponseFuture<V> extends AbstractListenableFuture<V> {
     private boolean keepAlive = true;
     private Request request;
     private NettyRequest nettyRequest;
+    private HttpResponseStatus httpStatus;
     private HttpHeaders httpHeaders;
     private AsyncHandler<V> asyncHandler;
     private boolean streamWasAlreadyConsumed;
@@ -293,15 +296,26 @@ public final class NettyResponseFuture<V> extends AbstractListenableFuture<V> {
     public final void setKeepAlive(final boolean keepAlive) {
         this.keepAlive = keepAlive;
     }
+    
+    public HttpResponseStatus getHttpStatus() {
+        return httpStatus;
+    }
 
     public final HttpHeaders getHttpHeaders() {
         return httpHeaders;
     }
 
-    public final void setHttpHeaders(HttpHeaders httpHeaders) {
-        this.httpHeaders = httpHeaders;
+    public void storeResponseData(HttpResponse httpResponse) {
+        // store the status for ConnectionPoolOffering and headers for trailing headers
+        httpStatus = httpResponse.getStatus();
+        httpHeaders = httpResponse.headers();
     }
-
+    
+    public void cleanResponseData() {
+        httpStatus = null;
+        httpHeaders = null;
+    }
+    
     public int incrementAndGetCurrentRedirectCount() {
         return redirectCount.incrementAndGet();
     }

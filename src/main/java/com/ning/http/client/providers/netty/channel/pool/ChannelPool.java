@@ -23,11 +23,12 @@ public interface ChannelPool {
     /**
      * Add a connection to the pool
      *
-     * @param partitionId        a key used to retrieve the cached connection
-     * @param connection an I/O connection
+     * @param channel an I/O connection
+     * @param partitionId a key used to retrieve the cached connection
+     * @param statusCode the response status code
      * @return true if added.
      */
-    boolean offer(Channel connection, String partitionId);
+    boolean offer(Channel connection, String partitionId, Integer statusCode);
 
     /**
      * Get a connection from a partition

@@ -17,6 +17,7 @@ import static com.ning.http.util.DateUtils.millisTime;
 import static com.ning.http.client.providers.grizzly.Utils.*;
 
 import com.ning.http.client.AsyncHttpClientConfig;
+import com.ning.http.client.ConnectionPoolOffering;
 
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
@@ -54,7 +55,7 @@ public class GrizzlyConnectionPool implements ConnectionPool {
             new ConcurrentHashMap<String,DelayedExecutor.IdleConnectionQueue>();
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicInteger totalCachedConnections = new AtomicInteger(0);
-    private final boolean cacheSSLConnections;
+    private final ConnectionPoolOffering connectionPoolOffering;
     private final int maxConnectionsPerHost;
     private final int maxConnections;
     private final boolean unlimitedConnections;
@@ -83,13 +84,13 @@ public class GrizzlyConnectionPool implements ConnectionPool {
 
 
     @SuppressWarnings("UnusedDeclaration")
-    public GrizzlyConnectionPool(final boolean cacheSSLConnections,
+    public GrizzlyConnectionPool(final ConnectionPoolOffering connectionPoolOffering,
                                   final int timeout,
                                   final int maxConnectionLifeTime,
                                   final int maxConnectionsPerHost,
                                   final int maxConnections,
                                   final DelayedExecutor delayedExecutor) {
-        this.cacheSSLConnections = cacheSSLConnections;
+        this.connectionPoolOffering = connectionPoolOffering;
         this.timeout = timeout;
         this.maxConnectionLifeTime = maxConnectionLifeTime;
         this.maxConnectionsPerHost = maxConnectionsPerHost;
@@ -111,7 +112,7 @@ public class GrizzlyConnectionPool implements ConnectionPool {
 
     public GrizzlyConnectionPool(final AsyncHttpClientConfig config) {
 
-        cacheSSLConnections = config.isAllowPoolingSslConnections();
+        connectionPoolOffering = config.getConnectionPoolOffering();
         timeout = config.getPooledConnectionIdleTimeout();
         maxConnectionLifeTime = config.getConnectionTTL();
         maxConnectionsPerHost = config.getMaxConnectionsPerHost();
@@ -128,7 +129,7 @@ public class GrizzlyConnectionPool implements ConnectionPool {
     @Override
     public boolean offer(String uri, Connection connection) {
 
-        if (isSecure(uri) && !cacheSSLConnections) {
+        if (!connectionPoolOffering.canOffer(isSecure(uri), null)) {
             return false;
         }
 
@@ -169,7 +170,7 @@ public class GrizzlyConnectionPool implements ConnectionPool {
     @Override
     public Connection poll(String uri) {
 
-        if (!cacheSSLConnections && isSecure(uri)) {
+        if (!connectionPoolOffering.canOffer(isSecure(uri), null)) {
             return null;
         }
 

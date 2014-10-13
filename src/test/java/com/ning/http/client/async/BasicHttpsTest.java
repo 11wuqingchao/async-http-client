@@ -17,6 +17,7 @@ package com.ning.http.client.async;
 
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.AsyncHttpClientConfig.Builder;
+import com.ning.http.client.ConnectionPoolOffering;
 import com.ning.http.client.Response;
 
 import org.eclipse.jetty.server.Request;
@@ -252,7 +253,8 @@ public abstract class BasicHttpsTest extends AbstractBasicTest {
 
     @Test(groups = { "standalone", "default_provider" })
     public void multipleSSLWithoutCacheTest() throws Throwable {
-        final AsyncHttpClient client = getAsyncHttpClient(new Builder().setSSLContext(createSSLContext(new AtomicBoolean(true))).setAllowPoolingSslConnections(false).build());
+        final AsyncHttpClient client = getAsyncHttpClient(new Builder().setSSLContext(createSSLContext(new AtomicBoolean(true)))//
+                .setConnectionPoolOffering(ConnectionPoolOffering.DontOfferHttps.INSTANCE).build());
         try {
             String body = "hello there";
             client.preparePost(getTargetUrl()).setBody(body).setHeader("Content-Type", "text/html").execute();

@@ -46,7 +46,7 @@ public class NettyConnectionPoolTest extends ConnectionPoolTest {
         ChannelPool cp = new NoopChannelPool() {
 
             @Override
-            public boolean offer(Channel connection, String poolKey) {
+            public boolean offer(Channel connection, String poolKey, Integer statusCode) {
                 return false;
             }
 
@@ -81,7 +81,7 @@ public class NettyConnectionPoolTest extends ConnectionPoolTest {
         ChannelPool cp = new NoopChannelPool() {
 
             @Override
-            public boolean offer(Channel connection, String poolKey) {
+            public boolean offer(Channel connection, String poolKey, Integer statusCode) {
                 return true;
             }
         };

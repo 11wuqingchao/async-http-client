@@ -52,7 +52,7 @@ public class AsyncHttpClientConfig {
     protected int webSocketTimeout;
 
     protected boolean allowPoolingConnections;
-    protected boolean allowPoolingSslConnections;
+    protected ConnectionPoolOffering connectionPoolOffering;
     protected int pooledConnectionIdleTimeout;
     protected int connectionTTL;
 
@@ -91,7 +91,7 @@ public class AsyncHttpClientConfig {
             int readTimeout,//
             int webSocketIdleTimeout,//
             boolean allowPoolingConnection,//
-            boolean allowSslConnectionPool,//
+            ConnectionPoolOffering connectionPoolOffering,//
             int idleConnectionInPoolTimeout,//
             int maxConnectionLifeTime,//
             SSLContext sslContext, //
@@ -123,7 +123,7 @@ public class AsyncHttpClientConfig {
         this.readTimeout = readTimeout;
         this.webSocketTimeout = webSocketIdleTimeout;
         this.allowPoolingConnections = allowPoolingConnection;
-        this.allowPoolingSslConnections = allowSslConnectionPool;
+        this.connectionPoolOffering = connectionPoolOffering;
         this.pooledConnectionIdleTimeout = idleConnectionInPoolTimeout;
         this.connectionTTL = maxConnectionLifeTime;
         this.sslContext = sslContext;
@@ -333,8 +333,6 @@ public class AsyncHttpClientConfig {
     }
 
     /**
-     * Return the number of time the library will retry when an {@link java.io.IOException} is throw by the remote server
-     *
      * @return the number of time the library will retry when an {@link java.io.IOException} is throw by the remote server
      */
     public int getMaxRequestRetry() {
@@ -342,12 +340,10 @@ public class AsyncHttpClientConfig {
     }
 
     /**
-     * Return true is SSL connection polling is enabled. Default is true.
-     *
-     * @return true is enabled.
+     * @return the strategy for deciding if a connection can be pooled
      */
-    public boolean isAllowPoolingSslConnections() {
-        return allowPoolingSslConnections;
+    public ConnectionPoolOffering getConnectionPoolOffering() {
+        return connectionPoolOffering;
     }
 
     /**
@@ -460,7 +456,7 @@ public class AsyncHttpClientConfig {
         private int readTimeout = defaultReadTimeout();
         private int webSocketTimeout = defaultWebSocketTimeout();
         private boolean allowPoolingConnections = defaultAllowPoolingConnections();
-        private boolean allowPoolingSslConnections = defaultAllowPoolingSslConnections();
+        private ConnectionPoolOffering connectionPoolOffering = defaultConnectionPoolOffering();
         private int pooledConnectionIdleTimeout = defaultPooledConnectionIdleTimeout();
         private int connectionTTL = defaultConnectionTTL();
         private SSLContext sslContext;
@@ -777,13 +773,11 @@ public class AsyncHttpClientConfig {
         }
 
         /**
-         * Return true is if connections pooling is enabled.
-         *
-         * @param allowPoolingSslConnections true if enabled
+         * @param connectionPoolOffering the strategy for deciding if a connection can be pooled
          * @return this
          */
-        public Builder setAllowPoolingSslConnections(boolean allowPoolingSslConnections) {
-            this.allowPoolingSslConnections = allowPoolingSslConnections;
+        public Builder setConnectionPoolOffering(ConnectionPoolOffering connectionPoolOffering) {
+            this.connectionPoolOffering = connectionPoolOffering;
             return this;
         }
 
@@ -938,7 +932,7 @@ public class AsyncHttpClientConfig {
             disableUrlEncodingForBoundedRequests = prototype.isDisableUrlEncodingForBoundedRequests();
             ioThreadMultiplier = prototype.getIoThreadMultiplier();
             maxRequestRetry = prototype.getMaxRequestRetry();
-            allowPoolingSslConnections = prototype.isAllowPoolingConnections();
+            connectionPoolOffering = prototype.getConnectionPoolOffering();
             removeQueryParamOnRedirect = prototype.isRemoveQueryParamOnRedirect();
             hostnameVerifier = prototype.getHostnameVerifier();
             strict302Handling = prototype.isStrict302Handling();
@@ -983,7 +977,7 @@ public class AsyncHttpClientConfig {
                     readTimeout,//
                     webSocketTimeout,//
                     allowPoolingConnections,//
-                    allowPoolingSslConnections,//
+                    connectionPoolOffering,//
                     pooledConnectionIdleTimeout,//
                     connectionTTL,//
                     sslContext, //

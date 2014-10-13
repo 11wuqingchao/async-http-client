@@ -517,6 +517,7 @@ public final class NettyRequestSender {
         if (future.getAsyncHandler() instanceof AsyncHandlerExtensions)
             AsyncHandlerExtensions.class.cast(future.getAsyncHandler()).onRetry();
 
+        
         channelManager.drainChannel(channel, future);
         sendNextRequest(newRequest, future);
         return;

@@ -61,7 +61,7 @@ public class AsyncHttpClientConfigBean extends AsyncHttpClientConfig {
         useRelativeURIsWithConnectProxies = defaultUseRelativeURIsWithConnectProxies();
         maxRequestRetry = defaultMaxRequestRetry();
         ioThreadMultiplier = defaultIoThreadMultiplier();
-        allowPoolingSslConnections = defaultAllowPoolingSslConnections();
+        connectionPoolOffering = defaultConnectionPoolOffering();
         disableUrlEncodingForBoundRequests = defaultDisableUrlEncodingForBoundRequests();
         removeQueryParamOnRedirect = defaultRemoveQueryParamOnRedirect();
         strict302Handling = defaultStrict302Handling();
@@ -202,8 +202,8 @@ public class AsyncHttpClientConfigBean extends AsyncHttpClientConfig {
         return this;
     }
 
-    public AsyncHttpClientConfigBean setAllowSslConnectionPool(boolean allowSslConnectionPool) {
-        this.allowPoolingSslConnections = allowSslConnectionPool;
+    public AsyncHttpClientConfigBean setConnectionPoolOffering(ConnectionPoolOffering connectionPoolOffering) {
+        this.connectionPoolOffering = connectionPoolOffering;
         return this;
     }
 

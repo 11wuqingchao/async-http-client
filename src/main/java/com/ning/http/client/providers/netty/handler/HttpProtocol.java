@@ -168,13 +168,15 @@ public final class HttpProtocol extends Protocol {
         }
     }
 
-    private void finishUpdate(final NettyResponseFuture<?> future, Channel channel, boolean expectOtherChunks) throws IOException {
+    private void finishUpdate(Channel channel, final NettyResponseFuture<?> future, boolean expectOtherChunks) throws IOException {
 
         boolean keepAlive = future.isKeepAlive();
         if (expectOtherChunks && keepAlive)
             channelManager.drainChannel(channel, future);
         else
-            channelManager.tryToOfferChannelToPool(channel, keepAlive, channelManager.getPartitionId(future));
+            channelManager.tryToOfferChannelToPool(channel, keepAlive, channelManager.getPartitionId(future), future.getHttpStatus());
+        // clean up memory
+        future.cleanResponseData();
         markAsDone(future, channel);
     }
 
@@ -206,7 +208,7 @@ public final class HttpProtocol extends Protocol {
             final NettyResponseFuture<?> future,//
             HttpResponse response,//
             final Request request,//
-            int statusCode,//
+            final int statusCode,//
             Realm realm,//
             ProxyServer proxyServer) throws Exception {
 
@@ -254,6 +256,8 @@ public final class HttpProtocol extends Protocol {
                 Callback callback = new Callback(future) {
                     public void call() throws IOException {
                         channelManager.drainChannel(channel, future);
+                        // clean up memory
+                        future.cleanResponseData();
                         requestSender.sendNextRequest(nextRequest, future);
                     }
                 };
@@ -263,7 +267,7 @@ public final class HttpProtocol extends Protocol {
                     // before executing the next request.
                     Channels.setAttribute(channel, callback);
                 else
-                    // call might crash with an IOException
+                    // Beware: call might crash with an IOException
                     callback.call();
 
                 return true;
@@ -373,7 +377,7 @@ public final class HttpProtocol extends Protocol {
     private boolean exitAfterHandlingStatus(Channel channel, NettyResponseFuture<?> future, HttpResponse response,
             AsyncHandler<?> handler, NettyResponseStatus status) throws IOException, Exception {
         if (!future.getAndSetStatusReceived(true) && handler.onStatusReceived(status) != STATE.CONTINUE) {
-            finishUpdate(future, channel, HttpHeaders.isTransferEncodingChunked(response));
+            finishUpdate(channel, future, HttpHeaders.isTransferEncodingChunked(response));
             return true;
         }
         return false;
@@ -382,7 +386,7 @@ public final class HttpProtocol extends Protocol {
     private boolean exitAfterHandlingHeaders(Channel channel, NettyResponseFuture<?> future, HttpResponse response,
             AsyncHandler<?> handler, NettyResponseHeaders responseHeaders) throws IOException, Exception {
         if (!response.headers().isEmpty() && handler.onHeadersReceived(responseHeaders) != STATE.CONTINUE) {
-            finishUpdate(future, channel, HttpHeaders.isTransferEncodingChunked(response));
+            finishUpdate(channel, future, HttpHeaders.isTransferEncodingChunked(response));
             return true;
         }
         return false;
@@ -396,7 +400,7 @@ public final class HttpProtocol extends Protocol {
             if (response.getContent().readableBytes() > 0)
                 // FIXME no need to notify an empty bodypart?
                 updateBodyAndInterrupt(future, handler, new NettyResponseBodyPart(response, null, true));
-            finishUpdate(future, channel, false);
+            finishUpdate(channel, future, false);
             return true;
         }
         return false;
@@ -411,13 +415,11 @@ public final class HttpProtocol extends Protocol {
             final NettyResponseFuture<?> future,//
             AsyncHandler<?> handler) throws Exception {
 
+        future.storeResponseData(response);
+
         HttpRequest httpRequest = future.getNettyRequest().getHttpRequest();
         ProxyServer proxyServer = future.getProxyServer();
         logger.debug("\n\nRequest {}\n\nResponse {}\n", httpRequest, response);
-
-        // store the original headers so we can re-send all them to
-        // the handler in case of trailing headers
-        future.setHttpHeaders(response.headers());
 
         future.setKeepAlive(isConnectionKeepAlive(httpRequest.headers()) && isConnectionKeepAlive(response.headers()));
 
@@ -455,7 +457,7 @@ public final class HttpProtocol extends Protocol {
                     handler.onHeadersReceived(responseHeaders);
                 }
             }
-            finishUpdate(future, channel, !chunk.isLast());
+            finishUpdate(channel, future, !chunk.isLast());
         }
     }
 
@@ -494,7 +496,7 @@ public final class HttpProtocol extends Protocol {
             } catch (Exception abortException) {
                 logger.debug("Abort failed", abortException);
             } finally {
-                finishUpdate(future, channel, false);
+                finishUpdate(channel, future, false);
             }
             throw t;
         }

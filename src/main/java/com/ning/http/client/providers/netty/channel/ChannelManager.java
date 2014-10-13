@@ -29,6 +29,7 @@ import org.jboss.netty.channel.socket.ClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.http.HttpClientCodec;
 import org.jboss.netty.handler.codec.http.HttpContentDecompressor;
+import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocket08FrameDecoder;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocket08FrameEncoder;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrameAggregator;
@@ -274,11 +275,11 @@ public class ChannelManager {
             return new HttpContentDecompressor();
     }
 
-    public final void tryToOfferChannelToPool(Channel channel, boolean keepAlive, String partition) {
+    public final void tryToOfferChannelToPool(Channel channel, boolean keepAlive, String partition, HttpResponseStatus httpStatus) {
         if (channel.isConnected() && keepAlive && channel.isReadable()) {
             LOGGER.debug("Adding key: {} for channel {}", partition, channel);
-            channelPool.offer(channel, partition);
-            if (maxConnectionsPerHostEnabled)
+            boolean offered = channelPool.offer(channel, partition, httpStatus != null? httpStatus.getCode() : null);
+            if (offered && maxConnectionsPerHostEnabled)
                 channelId2KeyPool.putIfAbsent(channel.getId(), partition);
             Channels.setDiscard(channel);
         } else {
@@ -452,18 +453,18 @@ public class ChannelManager {
     }
 
     public final Callback newDrainCallback(final NettyResponseFuture<?> future, final Channel channel, final boolean keepAlive,
-            final String poolKey) {
+            final String poolKey, final HttpResponseStatus httpStatus) {
 
         return new Callback(future) {
             @Override
             public void call() {
-                tryToOfferChannelToPool(channel, keepAlive, poolKey);
+                tryToOfferChannelToPool(channel, keepAlive, poolKey, httpStatus);
             }
         };
     }
 
     public void drainChannel(final Channel channel, final NettyResponseFuture<?> future) {
-        Channels.setAttribute(channel, newDrainCallback(future, channel, future.isKeepAlive(), getPartitionId(future)));
+        Channels.setAttribute(channel, newDrainCallback(future, channel, future.isKeepAlive(), getPartitionId(future), future.getHttpStatus()));
     }
 
     public void flushPartition(String partitionId) {
